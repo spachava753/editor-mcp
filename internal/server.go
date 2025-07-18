@@ -13,9 +13,9 @@ import (
 
 type ExecuteShellArgs struct {
 	Command string `json:"command" jsonschema:"the command to execute"`
-	Shell   string `json:"shell" jsonschema:"the shell to use (default bash)"`
-	Async   bool   `json:"async" jsonschema:"execute the command asynchronously"`
-	Timeout int    `json:"timeout" jsonschema:"timeout in seconds (default 0 for no timeout)"`
+	Shell   string `json:"shell,omitempty" jsonschema:"the shell to use (default bash)"`
+	Async   bool   `json:"async,omitempty" jsonschema:"execute the command asynchronously"`
+	Timeout int    `json:"timeout,omitempty" jsonschema:"timeout in seconds (default 0 for no timeout)"`
 }
 
 type ExecuteShellOutput struct {
