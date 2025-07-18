@@ -86,6 +86,16 @@ func ExecuteShell(ctx context.Context, ss *mcp.ServerSession, params *mcp.CallTo
 	}, nil
 }
 
+var ExecuteShellTool = mcp.Tool{
+	Name:        "shell",
+	Description: `A tool to execute command in a shell. A new shell is used for each execution, so any environment variables will be inherited, or must be defined inline before execution of the command`,
+	Annotations: &mcp.ToolAnnotations{
+		DestructiveHint: ptr(true),
+		OpenWorldHint:   ptr(true),
+		Title:           "Shell",
+	},
+}
+
 func GetServer() (*mcp.Server, error) {
 	bi, ok := debug.ReadBuildInfo()
 	if !ok {
@@ -98,15 +108,7 @@ func GetServer() (*mcp.Server, error) {
 		Version: bi.Main.Version,
 	}, nil)
 
-	mcp.AddTool(server, &mcp.Tool{
-		Name:        "shell",
-		Description: `A tool to execute command in a shell. A new shell is used for each execution, so any environment variables will be inherited, or must be defined inline before execution of the command`,
-		Annotations: &mcp.ToolAnnotations{
-			DestructiveHint: ptr(true),
-			OpenWorldHint:   ptr(true),
-			Title:           "Shell",
-		},
-	}, ExecuteShell)
+	mcp.AddTool(server, &ExecuteShellTool, ExecuteShell)
 
 	return server, nil
 }
