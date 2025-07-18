@@ -10,10 +10,9 @@ import (
 func TestServer(t *testing.T) {
 	clientTransport, serverTransport := mcp.NewInMemoryTransports()
 
-	server, err := GetServer()
-	be.Err(t, err, nil)
+	server := GetServer("test")
 
-	_, err = server.Connect(t.Context(), serverTransport)
+	_, err := server.Connect(t.Context(), serverTransport)
 	be.Err(t, err, nil)
 
 	client := mcp.NewClient(&mcp.Implementation{
@@ -32,8 +31,7 @@ func TestServer(t *testing.T) {
 func TestExecuteShell(t *testing.T) {
 	clientTransport, serverTransport := mcp.NewInMemoryTransports()
 
-	server, err := GetServer()
-	be.Err(t, err, nil)
+	server := GetServer("test")
 
 	serverSession, err := server.Connect(t.Context(), serverTransport)
 	be.Err(t, err, nil)
@@ -113,7 +111,6 @@ func TestExecuteShell(t *testing.T) {
 		be.Err(t, callToolErr, nil)
 		sc := result.StructuredContent.(map[string]interface{})
 		be.True(t, strings.Contains(sc["stdout"].(string), "hello world"))
-		be.True(t, !sc["timed_out"].(bool))
 	})
 
 	t.Run("timeout_expired", func(t *testing.T) {

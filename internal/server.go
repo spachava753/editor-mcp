@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"os/exec"
-	"runtime/debug"
 	"time"
 )
 
@@ -164,21 +163,16 @@ var ExecuteShellTool = mcp.Tool{
 	},
 }
 
-func GetServer() (*mcp.Server, error) {
-	bi, ok := debug.ReadBuildInfo()
-	if !ok {
-		return nil, fmt.Errorf("could not read build info")
-	}
-
+func GetServer(version string) *mcp.Server {
 	server := mcp.NewServer(&mcp.Implementation{
 		Name:    "editor-mcp",
 		Title:   "Editor MCP",
-		Version: bi.Main.Version,
+		Version: version,
 	}, nil)
 
 	mcp.AddTool(server, &ExecuteShellTool, ExecuteShell)
 
-	return server, nil
+	return server
 }
 
 func ptr[T any](t T) *T {
