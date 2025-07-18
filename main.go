@@ -1,11 +1,13 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"flag"
 	"fmt"
 	"log"
 	"os"
+	"os/exec"
 	"runtime/debug"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -24,10 +26,66 @@ type ExecuteShellOutput struct {
 }
 
 func ExecuteShell(ctx context.Context, ss *mcp.ServerSession, params *mcp.CallToolParamsFor[ExecuteShellArgs]) (*mcp.CallToolResultFor[ExecuteShellOutput], error) {
-	// TODO: implement shell execution of a command
+	args := params.Arguments
+	if args.Command == "" {
+		return nil, fmt.Errorf("command cannot be empty")
+	}
+
+	// Default shell to bash if not specified
+	shell := args.Shell
+	if shell == "" {
+		shell = "bash"
+	}
+
+	// Handle async execution
+	if args.Async {
+		// For async, we'll start the command and return immediately
+		cmd := exec.Command(shell, "-c", args.Command)
+		
+		// Start the command without waiting for completion
+		err := cmd.Start()
+		if err != nil {
+			return nil, fmt.Errorf("failed to start command: %w", err)
+		}
+		
+		pid := ""
+		if cmd.Process != nil {
+			pid = fmt.Sprintf("%d", cmd.Process.Pid)
+		}
+		
+		return &mcp.CallToolResultFor[ExecuteShellOutput]{
+			Content: []mcp.Content{
+				&mcp.TextContent{
+					Text: fmt.Sprintf("Command started asynchronously with PID: %s\nNote: Process started but not waited for completion", pid),
+				},
+			},
+		}, nil
+	}
+
+	// Execute the command synchronously
+	cmd := exec.CommandContext(ctx, shell, "-c", args.Command)
+	
+	// Capture stdout and stderr
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+	
+	// Execute the command
+	err := cmd.Run()
+	
+	// Get the process ID (will be empty if command has already completed)
+	pid := ""
+	if cmd.Process != nil {
+		pid = fmt.Sprintf("%d", cmd.Process.Pid)
+	}
+	
+	// Return the result
 	return &mcp.CallToolResultFor[ExecuteShellOutput]{
 		Content: []mcp.Content{
-			&mcp.TextContent{Text: "Output: "},
+			&mcp.TextContent{
+				Text: fmt.Sprintf("Command executed with PID: %s\n\nSTDOUT:\n%s\n\nSTDERR:\n%s\n\nExit Error: %v", 
+					pid, stdout.String(), stderr.String(), err),
+			},
 		},
 	}, nil
 }
