@@ -3,6 +3,7 @@ package internal
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -19,12 +20,11 @@ type ExecuteShellArgs struct {
 }
 
 type ExecuteShellOutput struct {
-	Pid          int    `json:"pid" jsonschema:"the pid of the command"`
-	TimedOut     bool   `json:"timed_out" jsonschema:"if the boolean timed out"`
-	ProcessError string `json:"process_error" jsonschema:"if the process returned an error"`
-	ExitCode     int    `json:"exit_code" jsonschema:"the exit code"`
-	Stderr       string `json:"stderr" jsonschema:"the stderr output of the command"`
-	Stdout       string `json:"stdout" jsonschema:"the stdout output of the command"`
+	Pid      int    `json:"pid" jsonschema:"the pid of the command"`
+	TimedOut bool   `json:"timed_out,omitempty" jsonschema:"if the boolean timed out"`
+	ExitCode int    `json:"exit_code" jsonschema:"the exit code"`
+	Stderr   string `json:"stderr" jsonschema:"the stderr output of the command"`
+	Stdout   string `json:"stdout" jsonschema:"the stdout output of the command"`
 }
 
 func ExecuteShell(ctx context.Context, ss *mcp.ServerSession, params *mcp.CallToolParamsFor[ExecuteShellArgs]) (*mcp.CallToolResultFor[ExecuteShellOutput], error) {
@@ -65,10 +65,16 @@ func ExecuteShell(ctx context.Context, ss *mcp.ServerSession, params *mcp.CallTo
 			pid = cmd.Process.Pid
 		}
 
+		result := ExecuteShellOutput{
+			Pid: pid,
+		}
+		content, err := json.Marshal(result)
+
 		return &mcp.CallToolResultFor[ExecuteShellOutput]{
-			StructuredContent: ExecuteShellOutput{
-				Pid: pid,
+			Content: []mcp.Content{
+				&mcp.TextContent{Text: string(content)},
 			},
+			StructuredContent: result,
 		}, nil
 	}
 
@@ -130,15 +136,21 @@ func ExecuteShell(ctx context.Context, ss *mcp.ServerSession, params *mcp.CallTo
 	}
 
 	// Return the result
+	result := ExecuteShellOutput{
+		Pid:      pid,
+		TimedOut: timedOut,
+		ExitCode: exitCode,
+		Stderr:   stderr.String(),
+		Stdout:   stdout.String(),
+	}
+	content, _ := json.Marshal(result)
+
 	return &mcp.CallToolResultFor[ExecuteShellOutput]{
-		IsError: timedOut || exitCode != 0,
-		StructuredContent: ExecuteShellOutput{
-			Pid:      pid,
-			TimedOut: timedOut,
-			ExitCode: exitCode,
-			Stderr:   stderr.String(),
-			Stdout:   stdout.String(),
+		Content: []mcp.Content{
+			&mcp.TextContent{Text: string(content)},
 		},
+		IsError:           timedOut || exitCode != 0,
+		StructuredContent: result,
 	}, nil
 }
 

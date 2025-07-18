@@ -8,12 +8,13 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"syscall"
 )
 
 func main() {
 	flag.Parse()
 
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
 	server, err := internal.GetServer()
