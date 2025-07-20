@@ -6,9 +6,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"os/exec"
 	"time"
+
+	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
 type ExecuteShellArgs struct {
@@ -164,17 +165,28 @@ var ExecuteShellTool = mcp.Tool{
 }
 
 func GetServer(version string) *mcp.Server {
+	// Initialize the process registry with default configuration if not already initialized
+	if GetRegistry() == nil {
+		InitializeRegistry(nil)
+	}
+
 	server := mcp.NewServer(&mcp.Implementation{
 		Name:    "editor-mcp",
 		Title:   "Editor MCP",
 		Version: version,
 	}, nil)
 
+	// Add the original shell tool
 	mcp.AddTool(server, &ExecuteShellTool, ExecuteShell)
 
-	return server
-}
+	// Add new process management tools
+	mcp.AddTool(server, &StartProcessToolDef, StartProcessTool)
+	mcp.AddTool(server, &ListProcessesToolDef, ListProcessesTool)
+	mcp.AddTool(server, &GetProcessStatusToolDef, GetProcessStatusTool)
+	mcp.AddTool(server, &SendProcessInputToolDef, SendProcessInputTool)
+	mcp.AddTool(server, &ReadProcessOutputToolDef, ReadProcessOutputTool)
+	mcp.AddTool(server, &TerminateProcessToolDef, TerminateProcessTool)
+	mcp.AddTool(server, &SendSignalToolDef, SendSignalTool)
 
-func ptr[T any](t T) *T {
-	return &t
+	return server
 }

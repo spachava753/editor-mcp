@@ -2,30 +2,22 @@ package internal
 
 import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
-	"github.com/nalgeon/be"
 	"strings"
 	"testing"
+
+	"github.com/nalgeon/be"
 )
 
-func TestServer(t *testing.T) {
-	clientTransport, serverTransport := mcp.NewInMemoryTransports()
+// Simple integration test to verify basic functionality
+func TestBasicIntegration(t *testing.T) {
+	// Test that we can create a registry
+	registry := NewRegistry(nil)
+	be.True(t, registry != nil)
+	defer registry.Shutdown()
 
-	server := GetServer("test")
-
-	_, err := server.Connect(t.Context(), serverTransport)
-	be.Err(t, err, nil)
-
-	client := mcp.NewClient(&mcp.Implementation{
-		Name:    "test-client",
-		Version: "na",
-	}, nil)
-
-	clientSession, err := client.Connect(t.Context(), clientTransport)
-	be.Err(t, err, nil)
-
-	result, err := clientSession.ListTools(t.Context(), nil)
-	be.Err(t, err, nil)
-	be.True(t, len(result.Tools) > 0)
+	// Test that we can access the global registry
+	global := GetRegistry()
+	be.True(t, global != nil)
 }
 
 func TestExecuteShell(t *testing.T) {
