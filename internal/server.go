@@ -176,10 +176,8 @@ func GetServer(version string) *mcp.Server {
 		Version: version,
 	}, nil)
 
-	// Add the original shell tool
 	mcp.AddTool(server, &ExecuteShellTool, ExecuteShell)
 
-	// Add new process management tools
 	mcp.AddTool(server, &StartProcessToolDef, StartProcessTool)
 	mcp.AddTool(server, &ListProcessesToolDef, ListProcessesTool)
 	mcp.AddTool(server, &GetProcessStatusToolDef, GetProcessStatusTool)
@@ -187,6 +185,8 @@ func GetServer(version string) *mcp.Server {
 	mcp.AddTool(server, &ReadProcessOutputToolDef, ReadProcessOutputTool)
 	mcp.AddTool(server, &TerminateProcessToolDef, TerminateProcessTool)
 	mcp.AddTool(server, &SendSignalToolDef, SendSignalTool)
+
+	mcp.AddTool(server, &TextEditToolDef, TextEditTool)
 
 	return server
 }

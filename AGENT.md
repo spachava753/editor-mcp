@@ -53,6 +53,9 @@ Editor MCP is a Model Context Protocol (MCP) server that lets agentic tools exec
 - Run fast tests locally: `go test ./...`; enable race detector for concurrency code: `go test -race ./...`
 - Prefer table-driven tests; validate error cases and boundary conditions (timeouts, invalid IDs, stream positions)
 - For process tools, test both running and terminated states; ensure buffers trim correctly and positions advance
+- Group related tests using a top-level TestX with subtests via t.Run, mirroring internal/server_test.go style
+- Avoid tiny helpers; call t.TempDir() directly in tests
+- Do not ignore errors. If an unexpected error occurs (e.g., reading a file we just created), use t.Fatalf. If an operation may return an error but we do not expect it in the test, use t.Errorf
 
 ## Security considerations
 - Commands run with the invoking user’s privileges; no extra sandboxing beyond OS permissions
