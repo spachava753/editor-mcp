@@ -27,10 +27,9 @@ type ExecuteShellOutput struct {
 	Stdout   string `json:"stdout" jsonschema:"the stdout output of the command"`
 }
 
-func ExecuteShell(ctx context.Context, ss *mcp.ServerSession, params *mcp.CallToolParamsFor[ExecuteShellArgs]) (*mcp.CallToolResultFor[ExecuteShellOutput], error) {
-	args := params.Arguments
+func ExecuteShell(ctx context.Context, req *mcp.CallToolRequest, args ExecuteShellArgs) (*mcp.CallToolResult, ExecuteShellOutput, error) {
 	if args.Command == "" {
-		return nil, fmt.Errorf("command cannot be empty")
+		return nil, ExecuteShellOutput{}, fmt.Errorf("command cannot be empty")
 	}
 
 	// Default shell to bash if not specified
@@ -42,12 +41,12 @@ func ExecuteShell(ctx context.Context, ss *mcp.ServerSession, params *mcp.CallTo
 	// Handle timeout
 	timeout := args.Timeout
 	if timeout < 0 {
-		return nil, fmt.Errorf("timeout cannot be negative")
+		return nil, ExecuteShellOutput{}, fmt.Errorf("timeout cannot be negative")
 	}
 
 	// Return error if both timeout and async are specified
 	if args.Async && timeout > 0 {
-		return nil, fmt.Errorf("timeout is not supported for asynchronous execution")
+		return nil, ExecuteShellOutput{}, fmt.Errorf("timeout is not supported for asynchronous execution")
 	}
 
 	if args.Async {
@@ -57,7 +56,7 @@ func ExecuteShell(ctx context.Context, ss *mcp.ServerSession, params *mcp.CallTo
 		// Start the command without waiting for completion
 		err := cmd.Start()
 		if err != nil {
-			return nil, fmt.Errorf("failed to start command: %w", err)
+			return nil, ExecuteShellOutput{}, fmt.Errorf("failed to start command: %w", err)
 		}
 
 		pid := 0
@@ -70,12 +69,11 @@ func ExecuteShell(ctx context.Context, ss *mcp.ServerSession, params *mcp.CallTo
 		}
 		content, err := json.Marshal(result)
 
-		return &mcp.CallToolResultFor[ExecuteShellOutput]{
+		return &mcp.CallToolResult{
 			Content: []mcp.Content{
 				&mcp.TextContent{Text: string(content)},
 			},
-			StructuredContent: result,
-		}, nil
+		}, result, nil
 	}
 
 	// Execute the command synchronously with proper timeout handling
@@ -91,7 +89,7 @@ func ExecuteShell(ctx context.Context, ss *mcp.ServerSession, params *mcp.CallTo
 
 	// Start the command
 	if err := cmd.Start(); err != nil {
-		return nil, fmt.Errorf("failed to start command: %w", err)
+		return nil, ExecuteShellOutput{}, fmt.Errorf("failed to start command: %w", err)
 	}
 
 	// Channel to signal command completion
@@ -145,13 +143,12 @@ func ExecuteShell(ctx context.Context, ss *mcp.ServerSession, params *mcp.CallTo
 	}
 	content, _ := json.Marshal(result)
 
-	return &mcp.CallToolResultFor[ExecuteShellOutput]{
+	return &mcp.CallToolResult{
 		Content: []mcp.Content{
 			&mcp.TextContent{Text: string(content)},
 		},
-		IsError:           timedOut || exitCode != 0,
-		StructuredContent: result,
-	}, nil
+		IsError: timedOut || exitCode != 0,
+	}, result, nil
 }
 
 var ExecuteShellTool = mcp.Tool{

@@ -14,12 +14,12 @@ func TestTextEdit(t *testing.T) {
 	clientTransport, serverTransport := mcp.NewInMemoryTransports()
 
 	server := GetServer("test")
-	serverSession, err := server.Connect(t.Context(), serverTransport)
+	serverSession, err := server.Connect(t.Context(), serverTransport, nil)
 	be.Err(t, err, nil)
 	_ = serverSession
 
 	client := mcp.NewClient(&mcp.Implementation{Name: "test-client", Version: "na"}, nil)
-	clientSession, err := client.Connect(t.Context(), clientTransport)
+	clientSession, err := client.Connect(t.Context(), clientTransport, nil)
 	be.Err(t, err, nil)
 
 	t.Run("create_success", func(t *testing.T) {

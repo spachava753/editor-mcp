@@ -35,16 +35,15 @@ func GetRegistry() *Registry {
 }
 
 // StartProcessTool handles starting new processes
-func StartProcessTool(ctx context.Context, ss *mcp.ServerSession, params *mcp.CallToolParamsFor[StartProcessArgs]) (*mcp.CallToolResultFor[StartProcessOutput], error) {
-	args := params.Arguments
+func StartProcessTool(ctx context.Context, req *mcp.CallToolRequest, args StartProcessArgs) (*mcp.CallToolResult, StartProcessOutput, error) {
 	if args.Command == "" {
-		return nil, fmt.Errorf("command cannot be empty")
+		return nil, StartProcessOutput{}, fmt.Errorf("command cannot be empty")
 	}
 
 	registry := GetRegistry()
 	proc, err := registry.StartProcess(ctx, args.Command, args.Shell, nil, args.Environment, args.WorkingDir, args.CaptureOutput)
 	if err != nil {
-		return nil, fmt.Errorf("failed to start process: %w", err)
+		return nil, StartProcessOutput{}, fmt.Errorf("failed to start process: %w", err)
 	}
 
 	result := StartProcessOutput{
@@ -55,17 +54,15 @@ func StartProcessTool(ctx context.Context, ss *mcp.ServerSession, params *mcp.Ca
 	}
 
 	content, _ := json.Marshal(result)
-	return &mcp.CallToolResultFor[StartProcessOutput]{
+	return &mcp.CallToolResult{
 		Content: []mcp.Content{
 			&mcp.TextContent{Text: string(content)},
 		},
-		StructuredContent: result,
-	}, nil
+	}, result, nil
 }
 
 // ListProcessesTool handles listing processes
-func ListProcessesTool(ctx context.Context, ss *mcp.ServerSession, params *mcp.CallToolParamsFor[ListProcessesArgs]) (*mcp.CallToolResultFor[ListProcessesOutput], error) {
-	args := params.Arguments
+func ListProcessesTool(ctx context.Context, req *mcp.CallToolRequest, args ListProcessesArgs) (*mcp.CallToolResult, ListProcessesOutput, error) {
 
 	// Set defaults
 	limit := args.Limit
@@ -89,7 +86,7 @@ func ListProcessesTool(ctx context.Context, ss *mcp.ServerSession, params *mcp.C
 	registry := GetRegistry()
 	processes, total, err := registry.ListProcesses(state, limit, offset, args.SortBy)
 	if err != nil {
-		return nil, fmt.Errorf("failed to list processes: %w", err)
+		return nil, ListProcessesOutput{}, fmt.Errorf("failed to list processes: %w", err)
 	}
 
 	// Convert to output format
@@ -115,44 +112,40 @@ func ListProcessesTool(ctx context.Context, ss *mcp.ServerSession, params *mcp.C
 	}
 
 	content, _ := json.Marshal(result)
-	return &mcp.CallToolResultFor[ListProcessesOutput]{
+	return &mcp.CallToolResult{
 		Content: []mcp.Content{
 			&mcp.TextContent{Text: string(content)},
 		},
-		StructuredContent: result,
-	}, nil
+	}, result, nil
 }
 
 // GetProcessStatusTool handles getting detailed process status
-func GetProcessStatusTool(ctx context.Context, ss *mcp.ServerSession, params *mcp.CallToolParamsFor[GetProcessStatusArgs]) (*mcp.CallToolResultFor[ProcessStatus], error) {
-	args := params.Arguments
+func GetProcessStatusTool(ctx context.Context, req *mcp.CallToolRequest, args GetProcessStatusArgs) (*mcp.CallToolResult, ProcessStatus, error) {
 	if args.ID == "" {
-		return nil, fmt.Errorf("process ID cannot be empty")
+		return nil, ProcessStatus{}, fmt.Errorf("process ID cannot be empty")
 	}
 
 	registry := GetRegistry()
 	status, err := registry.GetProcessStatus(args.ID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get process status: %w", err)
+		return nil, ProcessStatus{}, fmt.Errorf("failed to get process status: %w", err)
 	}
 
 	content, _ := json.Marshal(status)
-	return &mcp.CallToolResultFor[ProcessStatus]{
+	return &mcp.CallToolResult{
 		Content: []mcp.Content{
 			&mcp.TextContent{Text: string(content)},
 		},
-		StructuredContent: *status,
-	}, nil
+	}, *status, nil
 }
 
 // SendProcessInputTool handles sending input to a process
-func SendProcessInputTool(ctx context.Context, ss *mcp.ServerSession, params *mcp.CallToolParamsFor[SendProcessInputArgs]) (*mcp.CallToolResultFor[SendProcessInputOutput], error) {
-	args := params.Arguments
+func SendProcessInputTool(ctx context.Context, req *mcp.CallToolRequest, args SendProcessInputArgs) (*mcp.CallToolResult, SendProcessInputOutput, error) {
 	if args.ID == "" {
-		return nil, fmt.Errorf("process ID cannot be empty")
+		return nil, SendProcessInputOutput{}, fmt.Errorf("process ID cannot be empty")
 	}
 	if args.Input == "" {
-		return nil, fmt.Errorf("input cannot be empty")
+		return nil, SendProcessInputOutput{}, fmt.Errorf("input cannot be empty")
 	}
 
 	var inputData []byte
@@ -162,7 +155,7 @@ func SendProcessInputTool(ctx context.Context, ss *mcp.ServerSession, params *mc
 		// Decode base64 input
 		inputData, err = base64.StdEncoding.DecodeString(args.Input)
 		if err != nil {
-			return nil, fmt.Errorf("failed to decode base64 input: %w", err)
+			return nil, SendProcessInputOutput{}, fmt.Errorf("failed to decode base64 input: %w", err)
 		}
 	} else {
 		inputData = []byte(args.Input)
@@ -180,7 +173,7 @@ func SendProcessInputTool(ctx context.Context, ss *mcp.ServerSession, params *mc
 	registry := GetRegistry()
 	err = registry.SendInputToProcess(args.ID, inputData)
 	if err != nil {
-		return nil, fmt.Errorf("failed to send input to process: %w", err)
+		return nil, SendProcessInputOutput{}, fmt.Errorf("failed to send input to process: %w", err)
 	}
 
 	result := SendProcessInputOutput{
@@ -188,19 +181,17 @@ func SendProcessInputTool(ctx context.Context, ss *mcp.ServerSession, params *mc
 	}
 
 	content, _ := json.Marshal(result)
-	return &mcp.CallToolResultFor[SendProcessInputOutput]{
+	return &mcp.CallToolResult{
 		Content: []mcp.Content{
 			&mcp.TextContent{Text: string(content)},
 		},
-		StructuredContent: result,
-	}, nil
+	}, result, nil
 }
 
 // ReadProcessOutputTool handles reading output from a process
-func ReadProcessOutputTool(ctx context.Context, ss *mcp.ServerSession, params *mcp.CallToolParamsFor[ReadProcessOutputArgs]) (*mcp.CallToolResultFor[ReadProcessOutputOutput], error) {
-	args := params.Arguments
+func ReadProcessOutputTool(ctx context.Context, req *mcp.CallToolRequest, args ReadProcessOutputArgs) (*mcp.CallToolResult, ReadProcessOutputOutput, error) {
 	if args.ID == "" {
-		return nil, fmt.Errorf("process ID cannot be empty")
+		return nil, ReadProcessOutputOutput{}, fmt.Errorf("process ID cannot be empty")
 	}
 
 	// Set defaults
@@ -209,7 +200,7 @@ func ReadProcessOutputTool(ctx context.Context, ss *mcp.ServerSession, params *m
 		stream = "stdout"
 	}
 	if stream != "stdout" && stream != "stderr" {
-		return nil, fmt.Errorf("invalid stream: must be 'stdout' or 'stderr'")
+		return nil, ReadProcessOutputOutput{}, fmt.Errorf("invalid stream: must be 'stdout' or 'stderr'")
 	}
 
 	maxBytes := args.MaxBytes
@@ -230,7 +221,7 @@ func ReadProcessOutputTool(ctx context.Context, ss *mcp.ServerSession, params *m
 	// TODO: Implement blocking reads with timeout if needed
 	data, newPos, hasMore, err := registry.ReadProcessOutput(args.ID, stream, position, maxBytes)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read process output: %w", err)
+		return nil, ReadProcessOutputOutput{}, fmt.Errorf("failed to read process output: %w", err)
 	}
 
 	result := ReadProcessOutputOutput{
@@ -241,19 +232,17 @@ func ReadProcessOutputTool(ctx context.Context, ss *mcp.ServerSession, params *m
 	}
 
 	content, _ := json.Marshal(result)
-	return &mcp.CallToolResultFor[ReadProcessOutputOutput]{
+	return &mcp.CallToolResult{
 		Content: []mcp.Content{
 			&mcp.TextContent{Text: string(content)},
 		},
-		StructuredContent: result,
-	}, nil
+	}, result, nil
 }
 
 // TerminateProcessTool handles terminating processes
-func TerminateProcessTool(ctx context.Context, ss *mcp.ServerSession, params *mcp.CallToolParamsFor[TerminateProcessArgs]) (*mcp.CallToolResultFor[TerminateProcessOutput], error) {
-	args := params.Arguments
+func TerminateProcessTool(ctx context.Context, req *mcp.CallToolRequest, args TerminateProcessArgs) (*mcp.CallToolResult, TerminateProcessOutput, error) {
 	if args.ID == "" {
-		return nil, fmt.Errorf("process ID cannot be empty")
+		return nil, TerminateProcessOutput{}, fmt.Errorf("process ID cannot be empty")
 	}
 
 	registry := GetRegistry()
@@ -261,7 +250,7 @@ func TerminateProcessTool(ctx context.Context, ss *mcp.ServerSession, params *mc
 	// Check if process exists and is running
 	proc, err := registry.GetProcess(args.ID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get process: %w", err)
+		return nil, TerminateProcessOutput{}, fmt.Errorf("failed to get process: %w", err)
 	}
 
 	wasRunning := proc.IsRunning()
@@ -275,7 +264,7 @@ func TerminateProcessTool(ctx context.Context, ss *mcp.ServerSession, params *mc
 	// Terminate the process
 	err = registry.TerminateProcess(args.ID, args.Force, gracePeriod)
 	if err != nil && !errors.Is(err, ErrProcessAlreadyTerminated) {
-		return nil, fmt.Errorf("failed to terminate process: %w", err)
+		return nil, TerminateProcessOutput{}, fmt.Errorf("failed to terminate process: %w", err)
 	}
 
 	method := "graceful"
@@ -291,22 +280,20 @@ func TerminateProcessTool(ctx context.Context, ss *mcp.ServerSession, params *mc
 	}
 
 	content, _ := json.Marshal(result)
-	return &mcp.CallToolResultFor[TerminateProcessOutput]{
+	return &mcp.CallToolResult{
 		Content: []mcp.Content{
 			&mcp.TextContent{Text: string(content)},
 		},
-		StructuredContent: result,
-	}, nil
+	}, result, nil
 }
 
 // SendSignalTool handles sending signals to processes
-func SendSignalTool(ctx context.Context, ss *mcp.ServerSession, params *mcp.CallToolParamsFor[SendSignalArgs]) (*mcp.CallToolResultFor[SendSignalOutput], error) {
-	args := params.Arguments
+func SendSignalTool(ctx context.Context, req *mcp.CallToolRequest, args SendSignalArgs) (*mcp.CallToolResult, SendSignalOutput, error) {
 	if args.ID == "" {
-		return nil, fmt.Errorf("process ID cannot be empty")
+		return nil, SendSignalOutput{}, fmt.Errorf("process ID cannot be empty")
 	}
 	if args.Signal == "" {
-		return nil, fmt.Errorf("signal cannot be empty")
+		return nil, SendSignalOutput{}, fmt.Errorf("signal cannot be empty")
 	}
 
 	// Parse signal
@@ -331,7 +318,7 @@ func SendSignalTool(ctx context.Context, ss *mcp.ServerSession, params *mcp.Call
 		if num, err := strconv.Atoi(args.Signal); err == nil {
 			sig = syscall.Signal(num)
 		} else {
-			return nil, fmt.Errorf("invalid signal: %s", args.Signal)
+			return nil, SendSignalOutput{}, fmt.Errorf("invalid signal: %s", args.Signal)
 		}
 	}
 
@@ -340,7 +327,7 @@ func SendSignalTool(ctx context.Context, ss *mcp.ServerSession, params *mcp.Call
 
 	sent := err == nil
 	if err != nil && !errors.Is(err, ErrProcessNotFound) && !errors.Is(err, ErrProcessNotRunning) {
-		return nil, fmt.Errorf("failed to send signal: %w", err)
+		return nil, SendSignalOutput{}, fmt.Errorf("failed to send signal: %w", err)
 	}
 
 	result := SendSignalOutput{
@@ -350,12 +337,11 @@ func SendSignalTool(ctx context.Context, ss *mcp.ServerSession, params *mcp.Call
 	}
 
 	content, _ := json.Marshal(result)
-	return &mcp.CallToolResultFor[SendSignalOutput]{
+	return &mcp.CallToolResult{
 		Content: []mcp.Content{
 			&mcp.TextContent{Text: string(content)},
 		},
-		StructuredContent: result,
-	}, nil
+	}, result, nil
 }
 
 // Tool definitions

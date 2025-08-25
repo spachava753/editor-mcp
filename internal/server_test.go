@@ -25,7 +25,7 @@ func TestExecuteShell(t *testing.T) {
 
 	server := GetServer("test")
 
-	serverSession, err := server.Connect(t.Context(), serverTransport)
+	serverSession, err := server.Connect(t.Context(), serverTransport, nil)
 	be.Err(t, err, nil)
 	_ = serverSession
 
@@ -34,7 +34,7 @@ func TestExecuteShell(t *testing.T) {
 		Version: "na",
 	}, nil)
 
-	clientSession, err := client.Connect(t.Context(), clientTransport)
+	clientSession, err := client.Connect(t.Context(), clientTransport, nil)
 	be.Err(t, err, nil)
 
 	t.Run("success", func(t *testing.T) {

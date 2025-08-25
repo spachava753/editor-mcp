@@ -37,15 +37,14 @@ type TextEditOutput struct {
 	Results []TextEditFileResult `json:"results"`
 }
 
-func TextEditTool(ctx context.Context, ss *mcp.ServerSession, params *mcp.CallToolParamsFor[TextEditArgs]) (*mcp.CallToolResultFor[TextEditOutput], error) {
-	args := params.Arguments
+func TextEditTool(ctx context.Context, req *mcp.CallToolRequest, args TextEditArgs) (*mcp.CallToolResult, TextEditOutput, error) {
 
 	// helper to return an MCP error result
-	errorRes := func(msg string) (*mcp.CallToolResultFor[TextEditOutput], error) {
-		return &mcp.CallToolResultFor[TextEditOutput]{
+	errorRes := func(msg string) (*mcp.CallToolResult, TextEditOutput, error) {
+		return &mcp.CallToolResult{
 			Content: []mcp.Content{&mcp.TextContent{Text: msg}},
 			IsError: true,
-		}, nil
+		}, TextEditOutput{}, nil
 	}
 
 	if args.Command == "" {
@@ -95,7 +94,7 @@ func TextEditTool(ctx context.Context, ss *mcp.ServerSession, params *mcp.CallTo
 
 	for _, p := range args.Paths {
 		if ctx.Err() != nil {
-			return nil, ctx.Err()
+			return nil, TextEditOutput{}, ctx.Err()
 		}
 
 		res := TextEditFileResult{Path: p}
@@ -218,13 +217,12 @@ func TextEditTool(ctx context.Context, ss *mcp.ServerSession, params *mcp.CallTo
 
 	out := TextEditOutput{Results: results}
 	content, _ := json.Marshal(out)
-	return &mcp.CallToolResultFor[TextEditOutput]{
+	return &mcp.CallToolResult{
 		Content: []mcp.Content{
 			&mcp.TextContent{Text: string(content)},
 		},
-		StructuredContent: out,
-		IsError:           anyError(results),
-	}, nil
+		IsError: anyError(results),
+	}, out, nil
 }
 
 func anyError(results []TextEditFileResult) bool {
