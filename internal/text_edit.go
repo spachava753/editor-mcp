@@ -17,8 +17,8 @@ type TextEditArgs struct {
 	Command     string   `json:"command" jsonschema:"Text file operation to do"`
 	Paths       []string `json:"paths" jsonschema:"Paths to files. Required for all commands. Batch edits across files"`
 	OldText     string   `json:"old_text,omitempty" jsonschema:"Regex to match in a text file to replace text with 'text' parameter. Only required for command 'str_replace'"`
-	ReplaceAll  *bool    `json:"replace_all,omitempty" jsonschema:"Whether to replace all matches, or just one. Optional, only valid for the command 'str_replace'. If set to true, then every match of the 'old_text' will be replaced with the supplied 'text'"`
-	InsertAfter *int     `json:"insert_after,omitempty" jsonschema:"The file line after we should insert the given text. Required for the command 'insert'"`
+	ReplaceAll  bool     `json:"replace_all,omitempty" jsonschema:"Whether to replace all matches, or just one. Optional, only valid for the command 'str_replace'. If set to true, then every match of the 'old_text' will be replaced with the supplied 'text'"`
+	InsertAfter int      `json:"insert_after,omitempty" jsonschema:"The file line after we should insert the given text. Required for the command 'insert'"`
 	Text        string   `json:"text" jsonschema:"Text payload"`
 }
 
@@ -64,27 +64,24 @@ func TextEditTool(ctx context.Context, ss *mcp.ServerSession, params *mcp.CallTo
 		if args.OldText == "" {
 			return errorRes("old_text is required for command 'str_replace'")
 		}
-		if args.InsertAfter != nil {
+		if args.InsertAfter > 0 {
 			return errorRes("insert_after is only valid for command 'insert'")
 		}
 		if _, err := regexp.Compile(args.OldText); err != nil {
 			return errorRes(fmt.Sprintf("invalid regex: %v", err))
 		}
 	case "insert":
-		if args.InsertAfter == nil {
-			return errorRes("insert_after is required for command 'insert'")
-		}
-		if args.ReplaceAll != nil {
+		if args.ReplaceAll {
 			return errorRes("replace_all is only valid for command 'str_replace'")
 		}
 		if args.OldText != "" {
 			return errorRes("old_text is only valid for command 'str_replace'")
 		}
 	case "create":
-		if args.ReplaceAll != nil {
+		if args.ReplaceAll {
 			return errorRes("replace_all is only valid for command 'str_replace'")
 		}
-		if args.InsertAfter != nil {
+		if args.InsertAfter > 0 {
 			return errorRes("insert_after is only valid for command 'insert'")
 		}
 		if args.OldText != "" {
@@ -137,7 +134,7 @@ func TextEditTool(ctx context.Context, ss *mcp.ServerSession, params *mcp.CallTo
 				continue
 			}
 			lines := strings.SplitAfter(string(b), "\n")
-			idx := *args.InsertAfter
+			idx := args.InsertAfter
 			if idx < 0 {
 				idx = 0
 			}
@@ -190,7 +187,7 @@ func TextEditTool(ctx context.Context, ss *mcp.ServerSession, params *mcp.CallTo
 				results = append(results, res)
 				continue
 			}
-			replaceAll := args.ReplaceAll != nil && *args.ReplaceAll
+			replaceAll := args.ReplaceAll
 			if !replaceAll && len(matches) > 1 {
 				res.Status = "error"
 				res.Error = "multiple matches found with replace_all=false"
