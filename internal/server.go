@@ -206,7 +206,10 @@ ERROR HANDLING:
 - Non-zero exit codes marked as errors but still return output
 - Command not found results in exit_code 127 with error in stderr
 - Timeout results in process termination and partial output return
-- Shell syntax errors captured in stderr with appropriate exit code`,
+- Shell syntax errors captured in stderr with appropriate exit code
+
+IMPORTANT:
+- When you want to make modifications to files, prefer to use the 'text_edit' tool. You should not try to use this tool to write to files`,
 	Annotations: &mcp.ToolAnnotations{
 		DestructiveHint: ptr(true),
 		OpenWorldHint:   ptr(true),

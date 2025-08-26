@@ -15,7 +15,7 @@ import (
 type TextEditArgs struct {
 	Command     string   `json:"command" jsonschema:"Text file operation to do"`
 	Paths       []string `json:"paths" jsonschema:"Paths to files. Required for all commands. Batch edits across files"`
-	OldText     string   `json:"old_text,omitempty" jsonschema:"Exact text to match in a text file to replace with \'text\' parameter. Only required for command \'str_replace\'"`
+	OldText     string   `json:"old_text,omitempty" jsonschema:"Exact text to match in a text file to replace with 'text' parameter. Only required for command 'str_replace'"`
 	ReplaceAll  bool     `json:"replace_all,omitempty" jsonschema:"Whether to replace all matches, or just one. Optional, only valid for the command 'str_replace'. If set to true, then every match of the 'old_text' will be replaced with the supplied 'text'"`
 	InsertAfter int      `json:"insert_after,omitempty" jsonschema:"The file line after we should insert the given text. Required for the command 'insert'"`
 	Text        string   `json:"text" jsonschema:"Text payload"`
@@ -251,7 +251,7 @@ COMMANDS:
 
 FEATURES & LIMITATIONS:
 - Batch operations: All commands support multiple file paths for bulk edits
-- File creation: Automatically creates parent directories if they don't exist
+- File creation: Parent directories are **NOT** created if they don't exist, you must create them manually
 - Encoding: UTF-8 text files only; binary files are not supported
 - Atomicity: Each file operation completes independently; partial batch success is possible
 - Error handling: Returns individual success/error status for each file in the batch
@@ -262,9 +262,13 @@ FEATURES & LIMITATIONS:
 COMMON PATTERNS:
 - Code refactoring: Use str_replace with replace_all=true for renaming variables/functions
 - Adding imports/headers: Use insert with insert_after=0 for file headers
-- Appending content: First read the file to count lines, then use insert
+- Appending content: First read the file to count lines using a command like 'nl', then use insert
 - Safe editing: Use str_replace to preserve file structure and only change specific parts
-- File templates: Use create to generate new files from templates`,
+- File templates: Use create to generate new files from templates
+
+IMPORTANT:
+- File viewing: use a shell for read-only file operations, like viewing files, listing directories, etc.
+- Regex find and replace: if you want to replace some text matched with a specific text, use the shell tool to execute shell commands`,
 	Annotations: &mcp.ToolAnnotations{
 		DestructiveHint: ptr(true),
 		Title:           "Text Edit",
