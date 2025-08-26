@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strings"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -16,7 +15,7 @@ import (
 type TextEditArgs struct {
 	Command     string   `json:"command" jsonschema:"Text file operation to do"`
 	Paths       []string `json:"paths" jsonschema:"Paths to files. Required for all commands. Batch edits across files"`
-	OldText     string   `json:"old_text,omitempty" jsonschema:"Regex to match in a text file to replace text with 'text' parameter. Only required for command 'str_replace'"`
+	OldText     string   `json:"old_text,omitempty" jsonschema:"Exact text to match in a text file to replace with \'text\' parameter. Only required for command \'str_replace\'"`
 	ReplaceAll  bool     `json:"replace_all,omitempty" jsonschema:"Whether to replace all matches, or just one. Optional, only valid for the command 'str_replace'. If set to true, then every match of the 'old_text' will be replaced with the supplied 'text'"`
 	InsertAfter int      `json:"insert_after,omitempty" jsonschema:"The file line after we should insert the given text. Required for the command 'insert'"`
 	Text        string   `json:"text" jsonschema:"Text payload"`
@@ -65,9 +64,6 @@ func TextEditTool(ctx context.Context, req *mcp.CallToolRequest, args TextEditAr
 		}
 		if args.InsertAfter > 0 {
 			return errorRes("insert_after is only valid for command 'insert'")
-		}
-		if _, err := regexp.Compile(args.OldText); err != nil {
-			return errorRes(fmt.Sprintf("invalid regex: %v", err))
 		}
 	case "insert":
 		if args.ReplaceAll {
@@ -173,34 +169,33 @@ func TextEditTool(ctx context.Context, req *mcp.CallToolRequest, args TextEditAr
 				results = append(results, res)
 				continue
 			}
-			re, err := regexp.Compile(args.OldText)
-			if err != nil {
-				// Should not happen due to earlier validation, but keep for safety
-				return errorRes(fmt.Sprintf("invalid regex: %v", err))
-			}
 			s := string(b)
-			matches := re.FindAllStringIndex(s, -1)
-			if len(matches) == 0 {
+			if !strings.Contains(s, args.OldText) {
 				res.Status = "error"
 				res.Error = "no matches found"
 				results = append(results, res)
 				continue
 			}
-			replaceAll := args.ReplaceAll
-			if !replaceAll && len(matches) > 1 {
-				res.Status = "error"
-				res.Error = "multiple matches found with replace_all=false"
-				results = append(results, res)
-				continue
-			}
+
 			replacements := 0
 			var newS string
+			replaceAll := args.ReplaceAll
+
 			if replaceAll {
-				newS = re.ReplaceAllString(s, args.Text)
-				replacements = len(matches)
+				// Count how many matches there are
+				replacements = strings.Count(s, args.OldText)
+				newS = strings.ReplaceAll(s, args.OldText, args.Text)
 			} else {
-				loc := matches[0]
-				newS = s[:loc[0]] + args.Text + s[loc[1]:]
+				// Check if there are multiple matches when replace_all=false
+				if strings.Count(s, args.OldText) > 1 {
+					res.Status = "error"
+					res.Error = "multiple matches found with replace_all=false"
+					results = append(results, res)
+					continue
+				}
+				// Replace only the first occurrence
+				idx := strings.Index(s, args.OldText)
+				newS = s[:idx] + args.Text + s[idx+len(args.OldText):]
 				replacements = 1
 			}
 			if err := os.WriteFile(p, []byte(newS), info.Mode().Perm()); err != nil {

@@ -152,23 +152,6 @@ func TestTextEdit(t *testing.T) {
 		be.Equal(t, string(b), "Z Z")
 	})
 
-	t.Run("invalid_regex", func(t *testing.T) {
-		result, callErr := clientSession.CallTool(t.Context(), &mcp.CallToolParams{
-			Name: TextEditToolDef.Name,
-			Arguments: map[string]any{
-				"command":  "str_replace",
-				"paths":    []string{"foo.txt"},
-				"old_text": "[",
-				"text":     "Z",
-			},
-		})
-		be.Err(t, callErr, nil)
-		be.True(t, result.IsError)
-		be.True(t, len(result.Content) == 1)
-		tc := result.Content[0].(*mcp.TextContent)
-		be.True(t, strings.Contains(tc.Text, "invalid regex"))
-	})
-
 	t.Run("str_replace_no_matches_error", func(t *testing.T) {
 		dir := t.TempDir()
 		p := filepath.Join(dir, "x.txt")
