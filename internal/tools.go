@@ -6,10 +6,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"os"
-	"strconv"
-	"strings"
-	"syscall"
 	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -297,33 +293,13 @@ func SendSignalTool(ctx context.Context, req *mcp.CallToolRequest, args SendSign
 	}
 
 	// Parse signal
-	var sig os.Signal
-	switch strings.ToUpper(args.Signal) {
-	case "SIGTERM":
-		sig = syscall.SIGTERM
-	case "SIGKILL":
-		sig = syscall.SIGKILL
-	case "SIGINT":
-		sig = syscall.SIGINT
-	case "SIGSTOP":
-		sig = syscall.SIGSTOP
-	case "SIGCONT":
-		sig = syscall.SIGCONT
-	case "SIGUSR1":
-		sig = syscall.SIGUSR1
-	case "SIGUSR2":
-		sig = syscall.SIGUSR2
-	default:
-		// Try to parse as number
-		if num, err := strconv.Atoi(args.Signal); err == nil {
-			sig = syscall.Signal(num)
-		} else {
-			return nil, SendSignalOutput{}, fmt.Errorf("invalid signal: %s", args.Signal)
-		}
+	sig, err := parseSignal(args.Signal)
+	if err != nil {
+		return nil, SendSignalOutput{}, err
 	}
 
 	registry := GetRegistry()
-	err := registry.SendSignalToProcess(args.ID, sig)
+	err = registry.SendSignalToProcess(args.ID, sig)
 
 	sent := err == nil
 	if err != nil && !errors.Is(err, ErrProcessNotFound) && !errors.Is(err, ErrProcessNotRunning) {
