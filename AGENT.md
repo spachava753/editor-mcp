@@ -1,74 +1,158 @@
-# Agent Guide for editor-mcp
-
-@README.md
+# Editor MCP - Agent Guidelines
 
 ## Project Overview
-Editor MCP is a Model Context Protocol (MCP) server that lets agentic tools execute shell commands and manage background processes in a controlled way. It exposes tools for synchronous shell execution and an asynchronous process registry with I/O streaming, status, and signal control.
 
-## Project structure and organization
-- Root
-  - `main.go` entrypoint; stdio MCP server and graceful shutdown
-  - `README.md` usage, install, security overview
-  - `.goreleaser.yml` optional release config
-  - `go.mod`, `go.sum`
-  - `prompt.md` internal note for future tool work
-- `internal/`
-  - `server.go` MCP server wiring; tool registration
-  - `tools.go` tool handlers and definitions
-  - `types.go` request/response schemas
-  - `process.go` process model and output buffer
-  - `registry.go` async process registry, lifecycle, persistence hooks
-  - `errors.go` shared error types
-  - `*_test.go` unit tests
+Editor MCP is a Model Context Protocol (MCP) server written in Go that provides shell execution and text editing capabilities to AI assistants. It serves as a bridge between AI assistants and the local development environment, enabling controlled command execution and file manipulation.
 
-## Build, test, and development commands
-- Build: `go build -o editor-mcp`
-- Run: `go run .`
-- Version: `editor-mcp version`
-- Tests (all): `go test ./...`
-- Tests with race: `go test -race ./...`
-- Install (current module): `go install`
-- Release (optional, requires goreleaser): `goreleaser build --clean` or `goreleaser release --clean`
+**Architecture**: Single binary Go application implementing the MCP protocol over stdio transport
+**Purpose**: Enable AI assistants to execute shell commands and edit files in a controlled manner
+**Language**: Go 1.24.1+
 
-## Code style and conventions
-- Go 1.24+; format with `gofmt` or `go fmt`, lint with `go vet` (add staticcheck/golangci-lint if desired)
-- Package layout follows standard Go patterns; `internal` encapsulates server and tools
-- Errors: wrap with `fmt.Errorf("…: %w", err)`; return typed errors from `internal/errors.go`
-- JSON I/O: structs in `internal/types.go` define stable tool schemas with `json` tags
-- Concurrency: guard mutable state with `sync.RWMutex`; avoid data races; prefer context-aware operations
+## Project Structure and Organization
 
-## Architecture and design patterns
-- MCP Server: built with `github.com/modelcontextprotocol/go-sdk`; stdio transport with logging wrapper
-- Tools exposed:
-  - `shell`: run a command synchronously with optional timeout
-  - Process management: `start_process`, `list_processes`, `get_process_status`, `send_process_input`, `read_process_output`, `terminate_process`, `send_signal`
-- Process Registry: central manager for background processes
-  - Starts commands via shell or direct exec; tracks PID/state/exit code
-  - OutputBuffer keeps bounded stdout/stderr with position-based reads
-  - Cleanup loop prunes terminated processes; graceful shutdown on server exit
-- Configuration object `RegistryConfig` controls limits (buffer size, cleanup interval, max processes, optional persistence file)
+```
+.
+├── main.go                 # Entry point, initializes and runs the MCP server
+├── internal/
+│   ├── server.go          # MCP server implementation and shell tool handler
+│   ├── server_test.go     # Tests for server functionality
+│   ├── text_edit.go       # Text file editing tool implementation
+│   └── text_edit_test.go  # Tests for text editing functionality
+├── go.mod                 # Go module dependencies
+├── go.sum                 # Dependency checksums
+└── .goreleaser.yml        # Release configuration for cross-platform builds
+```
 
-## Testing guidelines
-- Unit tests live beside code (`*_test.go`)
-- Run fast tests locally: `go test ./...`; enable race detector for concurrency code: `go test -race ./...`
-- Prefer table-driven tests; validate error cases and boundary conditions (timeouts, invalid IDs, stream positions)
-- For process tools, test both running and terminated states; ensure buffers trim correctly and positions advance
-- Group related tests using a top-level TestX with subtests via t.Run, mirroring internal/server_test.go style
-- Avoid tiny helpers; call t.TempDir() directly in tests
-- Do not ignore errors. If an unexpected error occurs (e.g., reading a file we just created), use t.Fatalf. If an operation may return an error but we do not expect it in the test, use t.Errorf
+## Build, Test, and Development Commands
 
-## Security considerations
-- Commands run with the invoking user’s privileges; no extra sandboxing beyond OS permissions
-- Open-world/destructive operations are possible; clients should confirm intent before invoking risky commands
-- Environment variables are inherited unless overridden
-- Timeouts and termination are available but not enforced globally; configure or implement as needed
-- Output buffers retain up to the configured limit (default 100MB); avoid leaking sensitive data
-- Do not expose the server over the network; stdio MCP is intended for trusted local clients
+### Building
+```bash
+go build -o editor-mcp
+```
+
+### Testing
+```bash
+go test ./...
+```
+
+### Installing globally
+```bash
+go install github.com/spachava753/editor-mcp
+```
+
+### Running locally
+```bash
+./editor-mcp
+```
+
+### Releasing (via GitHub Actions)
+```bash
+git tag v1.0.0
+git push origin v1.0.0
+```
+
+### Dependency management
+```bash
+go mod tidy
+go mod download
+```
+
+## Code Style and Conventions
+
+### Go Conventions
+- Follow standard Go formatting using `gofmt`
+- Use meaningful variable and function names
+- Keep functions focused and single-purpose
+- Error handling: always check and handle errors appropriately
+- Use context for cancellation and timeouts
+
+### Package Structure
+- Main package in root for the executable
+- Internal packages in `internal/` directory for implementation details
+- Keep public API surface minimal
+
+### Naming Conventions
+- Use camelCase for variables and functions
+- Use PascalCase for exported types and functions
+- Use descriptive names that indicate purpose
+
+## Architecture and Design Patterns
+
+### MCP Server Implementation
+- Uses `github.com/modelcontextprotocol/go-sdk` for MCP protocol handling
+- Implements stdio transport for communication with MCP clients
+- Provides two main tools: `shell` and `text_edit`
+
+### Tool Design
+- **Shell Tool**: Executes commands with configurable shell, timeout, and async options
+- **Text Edit Tool**: Provides create, str_replace, and insert operations for file manipulation
+- Tools return structured JSON responses with error handling
+
+### Error Handling
+- All tool operations return detailed error messages
+- Non-zero exit codes from shell commands are captured and reported
+- File operations validate paths and report specific failures
+
+## Testing Guidelines
+
+### Unit Testing
+- All internal packages have corresponding `_test.go` files
+- Use table-driven tests where appropriate
+- Mock external dependencies when necessary
+- Test error conditions and edge cases
+
+### Running Tests
+```bash
+go test ./... -v        # Verbose output
+go test ./... -cover    # With coverage report
+go test -race ./...     # Check for race conditions
+```
+
+### Test Coverage
+- Aim for >80% coverage for critical paths
+- Focus on testing tool implementations and error handling
+- Integration tests should verify MCP protocol compliance
+
+## Security Considerations
+
+### Command Execution
+- Commands run with the same permissions as the MCP server process
+- No additional sandboxing beyond OS permissions
+- Timeout mechanisms prevent hanging commands
+- Environment variables are inherited from parent process
+
+### File Operations
+- Path validation to prevent directory traversal
+- UTF-8 text files only (no binary file support)
+- File operations are atomic per file
+- Parent directories must exist (not auto-created)
+
+### Best Practices
+- Never expose the MCP server to untrusted clients
+- Run with minimal required permissions
+- Audit command execution logs regularly
+- Consider using read-only mode for sensitive environments
 
 ## Configuration
-- Requirements: Go 1.24.1+, a compatible MCP client (e.g., CPE, Claude Desktop)
-- Registry tuning (code-level): `internal.DefaultRegistryConfig()` sets defaults
-  - `MaxProcesses`, `OutputBufferSize`, `CleanupInterval`, `ProcessTimeout`, `PersistenceFile`
-  - Override by calling `internal.InitializeRegistry(customConfig)` before `GetServer`
-- Releases: see @.goreleaser.yml if using Goreleaser
-- MCP client setup: see @README.md for Claude Desktop configuration; CPE users can consult https://github.com/spachava753/cpe
+
+### Environment Setup
+- Requires Go 1.24.1 or higher for building
+- Compatible with Linux, macOS, and Windows
+- No external runtime dependencies
+
+### MCP Client Integration
+- Configure MCP clients to use stdio transport
+- Specify full path to editor-mcp binary
+- Example configuration for Claude Desktop in @README.md
+
+### Development Environment
+- Use `.gitignore` to exclude binaries and temporary files
+- GitHub Actions configured for automated releases
+- GoReleaser handles cross-platform builds
+
+## Related Documentation
+
+- @README.md - Installation and usage instructions
+- @.goreleaser.yml - Release configuration details
+- @internal/server.go - Shell tool implementation details
+- @internal/text_edit.go - Text editing tool implementation
