@@ -218,11 +218,6 @@ IMPORTANT:
 }
 
 func GetServer(version string) *mcp.Server {
-	// Initialize the process registry with default configuration if not already initialized
-	if GetRegistry() == nil {
-		InitializeRegistry(nil)
-	}
-
 	server := mcp.NewServer(&mcp.Implementation{
 		Name:    "editor-mcp",
 		Title:   "Editor MCP",
@@ -230,16 +225,11 @@ func GetServer(version string) *mcp.Server {
 	}, nil)
 
 	mcp.AddTool(server, &ExecuteShellTool, ExecuteShell)
-
-	mcp.AddTool(server, &StartProcessToolDef, StartProcessTool)
-	mcp.AddTool(server, &ListProcessesToolDef, ListProcessesTool)
-	mcp.AddTool(server, &GetProcessStatusToolDef, GetProcessStatusTool)
-	mcp.AddTool(server, &SendProcessInputToolDef, SendProcessInputTool)
-	mcp.AddTool(server, &ReadProcessOutputToolDef, ReadProcessOutputTool)
-	mcp.AddTool(server, &TerminateProcessToolDef, TerminateProcessTool)
-	mcp.AddTool(server, &SendSignalToolDef, SendSignalTool)
-
 	mcp.AddTool(server, &TextEditToolDef, TextEditTool)
 
 	return server
+}
+
+func ptr[T any](t T) *T {
+	return &t
 }

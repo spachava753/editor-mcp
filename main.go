@@ -78,14 +78,6 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	// Set up graceful shutdown for process registry
-	defer func() {
-		registry := internal.GetRegistry()
-		if err := registry.Shutdown(); err != nil {
-			log.Printf("Error shutting down process registry: %v", err)
-		}
-	}()
-
 	server := internal.GetServer(version)
 	t := mcp.NewLoggingTransport(mcp.NewStdioTransport(), os.Stderr)
 	if err := server.Run(ctx, t); err != nil {
