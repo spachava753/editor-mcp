@@ -24,3 +24,6 @@
 
 # ...even if they are in subdirectories
 !*/
+
+# Allow *.md files in internal/ directory
+!internal/**/*.md
