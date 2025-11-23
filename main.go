@@ -79,8 +79,11 @@ func main() {
 	defer stop()
 
 	server := internal.GetServer(version)
-	t := mcp.NewLoggingTransport(mcp.NewStdioTransport(), os.Stderr)
-	if err := server.Run(ctx, t); err != nil {
+	t := mcp.LoggingTransport{
+		Transport: &mcp.StdioTransport{},
+		Writer:    os.Stderr,
+	}
+	if err := server.Run(ctx, &t); err != nil {
 		log.Printf("Server failed: %v", err)
 	}
 }
