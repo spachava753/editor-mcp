@@ -3,6 +3,7 @@ package internal
 import (
 	"context"
 	_ "embed"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"mime"
@@ -111,12 +112,12 @@ func handleViewCommand(ctx context.Context, args TextEditArgs) (*mcp.CallToolRes
 		switch primaryType {
 		case "image":
 			contents = append(contents, &mcp.ImageContent{
-				Data:     data,
+				Data:     []byte(base64.StdEncoding.EncodeToString(data)),
 				MIMEType: mimeType,
 			})
 		case "audio":
 			contents = append(contents, &mcp.AudioContent{
-				Data:     data,
+				Data:     []byte(base64.StdEncoding.EncodeToString(data)),
 				MIMEType: mimeType,
 			})
 		default:
