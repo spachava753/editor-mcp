@@ -237,4 +237,66 @@ func TestTextEdit(t *testing.T) {
 		be.Err(t, callErr, nil)
 		be.True(t, result.IsError)
 	})
+
+	t.Run("view_text_file", func(t *testing.T) {
+		dir := t.TempDir()
+		p := filepath.Join(dir, "test.txt")
+		content := "Hello, World!"
+		if err := os.WriteFile(p, []byte(content), 0o644); err != nil {
+			t.Fatalf("seed file: %v", err)
+		}
+		result, callErr := clientSession.CallTool(t.Context(), &mcp.CallToolParams{
+			Name: TextEditToolDef.Name,
+			Arguments: map[string]any{
+				"command": "view",
+				"paths":   []string{p},
+			},
+		})
+		be.Err(t, callErr, nil)
+		be.True(t, !result.IsError)
+		be.True(t, len(result.Content) == 1)
+		tc, ok := result.Content[0].(*mcp.TextContent)
+		be.True(t, ok)
+		be.Equal(t, tc.Text, content)
+	})
+
+	t.Run("view_multiple_files", func(t *testing.T) {
+		dir := t.TempDir()
+		p1 := filepath.Join(dir, "a.txt")
+		p2 := filepath.Join(dir, "b.txt")
+		if err := os.WriteFile(p1, []byte("first"), 0o644); err != nil {
+			t.Fatalf("seed file1: %v", err)
+		}
+		if err := os.WriteFile(p2, []byte("second"), 0o644); err != nil {
+			t.Fatalf("seed file2: %v", err)
+		}
+		result, callErr := clientSession.CallTool(t.Context(), &mcp.CallToolParams{
+			Name: TextEditToolDef.Name,
+			Arguments: map[string]any{
+				"command": "view",
+				"paths":   []string{p1, p2},
+			},
+		})
+		be.Err(t, callErr, nil)
+		be.True(t, !result.IsError)
+		be.True(t, len(result.Content) == 2)
+		tc1, ok := result.Content[0].(*mcp.TextContent)
+		be.True(t, ok)
+		be.Equal(t, tc1.Text, "first")
+		tc2, ok := result.Content[1].(*mcp.TextContent)
+		be.True(t, ok)
+		be.Equal(t, tc2.Text, "second")
+	})
+
+	t.Run("view_nonexistent_file", func(t *testing.T) {
+		result, callErr := clientSession.CallTool(t.Context(), &mcp.CallToolParams{
+			Name: TextEditToolDef.Name,
+			Arguments: map[string]any{
+				"command": "view",
+				"paths":   []string{"/nonexistent/path"},
+			},
+		})
+		be.Err(t, callErr, nil)
+		be.True(t, result.IsError)
+	})
 }

@@ -11,7 +11,9 @@ func GetServer(version string) *mcp.Server {
 		Name:    "editor-mcp",
 		Title:   "Editor MCP",
 		Version: version,
-	}, nil)
+	}, &mcp.ServerOptions{
+		HasResources: true,
+	})
 
 	mcp.AddTool(server, &ExecuteShellTool, ExecuteShell)
 	mcp.AddTool(server, &TextEditToolDef, TextEditTool)

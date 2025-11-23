@@ -46,7 +46,7 @@ LIMITATIONS & CONSIDERATIONS:
 COMMON PATTERNS:
 
 - File inspection: 'ls -la', 'cat file.txt', 'head -n 20 file.log'
-- Search operations: 'grep -r "pattern" .', 'find . -name "*.js"'
+- Search operations: 'grep -r "pattern" .', 'find . -name "\*.js"'
 - System info: 'uname -a', 'df -h', 'ps aux | grep process'
 - Network tasks: 'curl https://api.example.com', 'ping -c 4 google.com'
 - Package management: 'npm install', 'pip list', 'go mod download'
@@ -63,5 +63,4 @@ ERROR HANDLING:
 
 IMPORTANT:
 
-- When you want to make modifications to files, prefer to use the 'text_edit' tool. You should not try to use this tool
-  to write to files
+- When you want to make modifications to files, prefer to use the 'text_edit' tool. You should not try to use this tool to write to files
