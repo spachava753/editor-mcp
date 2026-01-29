@@ -1,12 +1,13 @@
-Replaces old text with new text in an existing file. Performs exact string matching and replacement while preserving surrounding content.
+Edits an existing file or creates a new file. When old_text is provided, performs exact string matching and replacement. When old_text is empty, creates a new file with the given content.
 
 Parameters:
-- path: Path to the file to edit (required)
-- old_text: Exact text to find and replace (required)
-- text: Replacement text (required)
+- path: Path to the file to edit or create (required)
+- old_text: Exact text to find and replace. If empty, creates a new file instead (optional)
+- text: Replacement text or content for new file (required)
 
 Notes:
-- Match must be exact including whitespace
-- File must exist; this tool cannot create new files
-- Returns error if old_text is not found
-- Returns error if multiple occurrences of old_text exist in the file
+- For editing: match must be exact including whitespace
+- For editing: returns error if old_text is not found
+- For editing: returns error if multiple occurrences of old_text exist in the file
+- For creating: returns error if file already exists at the path
+- For creating: parent directories are created automatically if they don't exist

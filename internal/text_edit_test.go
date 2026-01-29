@@ -92,4 +92,62 @@ func TestTextEdit(t *testing.T) {
 		be.Err(t, callErr, nil)
 		be.True(t, result.IsError)
 	})
+
+	t.Run("create_new_file_success", func(t *testing.T) {
+		dir := t.TempDir()
+		p := filepath.Join(dir, "newfile.txt")
+		result, callErr := clientSession.CallTool(t.Context(), &mcp.CallToolParams{
+			Name: TextEditToolDef.Name,
+			Arguments: map[string]any{
+				"path": p,
+				"text": "hello world",
+			},
+		})
+		be.Err(t, callErr, nil)
+		be.True(t, !result.IsError)
+		b, err := os.ReadFile(p)
+		if err != nil {
+			t.Fatalf("read created file: %v", err)
+		}
+		be.Equal(t, string(b), "hello world")
+	})
+
+	t.Run("create_file_already_exists_error", func(t *testing.T) {
+		dir := t.TempDir()
+		p := filepath.Join(dir, "existing.txt")
+		if err := os.WriteFile(p, []byte("existing content"), 0o644); err != nil {
+			t.Fatalf("seed file: %v", err)
+		}
+		result, callErr := clientSession.CallTool(t.Context(), &mcp.CallToolParams{
+			Name: TextEditToolDef.Name,
+			Arguments: map[string]any{
+				"path": p,
+				"text": "new content",
+			},
+		})
+		be.Err(t, callErr, nil)
+		be.True(t, result.IsError)
+		// Verify file wasn't modified
+		b, _ := os.ReadFile(p)
+		be.Equal(t, string(b), "existing content")
+	})
+
+	t.Run("create_file_with_parent_dirs", func(t *testing.T) {
+		dir := t.TempDir()
+		p := filepath.Join(dir, "subdir", "nested", "newfile.txt")
+		result, callErr := clientSession.CallTool(t.Context(), &mcp.CallToolParams{
+			Name: TextEditToolDef.Name,
+			Arguments: map[string]any{
+				"path": p,
+				"text": "nested content",
+			},
+		})
+		be.Err(t, callErr, nil)
+		be.True(t, !result.IsError)
+		b, err := os.ReadFile(p)
+		if err != nil {
+			t.Fatalf("read created file: %v", err)
+		}
+		be.Equal(t, string(b), "nested content")
+	})
 }
